@@ -19,7 +19,7 @@ FEATURE_NAMES = [
 ]
 
 # Đường dẫn đến thư mục gốc project
-PROJECT_ROOT = Path(__file__).resolve().parents[2]
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
 # Đường dẫn đến dataset CSV có tên cột
 DATA_PATH = PROJECT_ROOT / "data" / "raw" / "wine.csv"

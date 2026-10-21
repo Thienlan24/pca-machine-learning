@@ -6,25 +6,31 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 import matplotlib
+
 matplotlib.use("Agg")
+
 import matplotlib.pyplot as plt
 
-from src.pca.data_loader import load_wine_data, FEATURE_NAMES
-from src.pca.preprocessing import standardize_data
+# Thêm thư mục gốc dự án vào đường dẫn tìm module
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
+
+from pca.data_loader import load_wine_data
+from pca.preprocessing import standardize_data
 
 
 # ==========================================
 # CẤU HÌNH ĐƯỜNG DẪN
 # ==========================================
 
-PROJECT_ROOT = Path(__file__).resolve().parents[1]
-
 DATA_DIR = PROJECT_ROOT / "data" / "processed"
 FIGURE_DIR = PROJECT_ROOT / "results" / "figures"
 TABLE_DIR = PROJECT_ROOT / "results" / "tables"
 
-MANUAL_SCRIPT = PROJECT_ROOT / "src" / "pca" / "pca_manual.py"
-SKLEARN_SCRIPT = PROJECT_ROOT / "src" / "pca" / "pca_sklearn.py"
+MANUAL_SCRIPT = PROJECT_ROOT / "pca" / "pca_manual.py"
+SKLEARN_SCRIPT = PROJECT_ROOT / "pca" / "pca_sklearn.py"
 
 
 # ==========================================

@@ -3,11 +3,11 @@ import pandas as pd
 from pathlib import Path
 from sklearn.preprocessing import StandardScaler
 
-from src.pca.data_loader import load_wine_data
+from pca.data_loader import load_wine_data
 
 
 # Đường dẫn thư mục gốc của project
-PROJECT_ROOT = Path(__file__).resolve().parents[2]
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
 # Đường dẫn lưu dữ liệu sau chuẩn hóa
 OUTPUT_PATH = PROJECT_ROOT / "data" / "processed" / "wine_standardized.csv"
