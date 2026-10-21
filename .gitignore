@@ -1,0 +1,12 @@
+# Moi truong ao Python
+.venv/
+
+# File rac macOS
+.DS_Store
+
+# File tam cua Python
+__pycache__/
+*.pyc
+
+# File cau hinh rieng
+.env
