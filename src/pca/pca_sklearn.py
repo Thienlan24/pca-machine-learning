@@ -1,116 +1,201 @@
-
-import numpy as np
 import pandas as pd
+import numpy as np
 import matplotlib.pyplot as plt
 from pathlib import Path
 from sklearn.decomposition import PCA
 
-import sys
-from pathlib import Path
 
-# Xác định thư mục gốc của project
+# ==========================================
+# BƯỚC 1. ĐỌC DỮ LIỆU ĐÃ CHUẨN HÓA
+# ==========================================
+
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
-# Thêm thư mục gốc vào đường dẫn tìm kiếm module
-sys.path.insert(0, str(PROJECT_ROOT))
+DATA_PATH = (
+    PROJECT_ROOT / "data" / "processed" / "wine_standardized.csv"
+)
 
-from src.pca.data_loader import load_wine_data
-from src.pca.preprocessing import standardize_data
+print("Đường dẫn dữ liệu:", DATA_PATH)
+print("File tồn tại:", DATA_PATH.exists())
+
+if not DATA_PATH.exists():
+    raise FileNotFoundError(
+        "Không tìm thấy wine_standardized.csv. "
+        "Hãy chạy preprocessing.py trước."
+    )
+
+df = pd.read_csv(DATA_PATH)
+
+# Tách nhãn và các thuộc tính đã chuẩn hóa
+y = df["target"].to_numpy()
+X_scaled = df.drop(columns=["target"]).to_numpy(dtype=float)
+
+print("\nKích thước dữ liệu:", X_scaled.shape)
+print("Số mẫu:", X_scaled.shape[0])
+print("Số thuộc tính:", X_scaled.shape[1])
 
 
-# Bước 1. Xác định thư mục gốc của project
-PROJECT_ROOT = Path(__file__).resolve().parents[2]
+# ==========================================
+# BƯỚC 2. KHỞI TẠO VÀ HUẤN LUYỆN PCA
+# ==========================================
 
-# Đường dẫn lưu kết quả PCA
-OUTPUT_PATH = PROJECT_ROOT / "data" / "processed" / "wine_pca_sklearn.csv"
+# PCA đầy đủ để phân tích tất cả thành phần chính
+pca_full = PCA()
+
+pca_full.fit(X_scaled)
+
+print("\n=== PCA BẰNG SCIKIT-LEARN ===")
+print("Số thành phần chính:", pca_full.n_components_)
 
 
-if __name__ == "__main__":
+# ==========================================
+# BƯỚC 3. LẤY PHƯƠNG SAI GIẢI THÍCH
+# ==========================================
 
-    # Bước 2. Đọc dữ liệu Wine
-    X, y, feature_names = load_wine_data()
+explained_variance_ratio = (
+    pca_full.explained_variance_ratio_
+)
 
-    print("Kích thước dữ liệu ban đầu:", X.shape)
+print("\n=== TỶ LỆ PHƯƠNG SAI GIẢI THÍCH ===")
 
-    # Bước 3. Chuẩn hóa dữ liệu
-    X_scaled = standardize_data(X)
-
-    print("Kích thước dữ liệu sau chuẩn hóa:", X_scaled.shape)
-
-    # Bước 4. Thực hiện PCA bằng Scikit-learn
-    pca = PCA(n_components=2)
-
-    X_pca = pca.fit_transform(X_scaled)
-
-    # Bước 5. Lấy tỷ lệ phương sai giải thích
-    explained_variance_ratio = pca.explained_variance_ratio_
-
-    cumulative_variance = np.sum(explained_variance_ratio)
-
-    print("\n=== PCA BẰNG SCIKIT-LEARN ===")
-
-    print("\nKích thước dữ liệu sau PCA:", X_pca.shape)
-
-    print("\nTỷ lệ phương sai giải thích:")
-    print("PC1:", round(explained_variance_ratio[0] * 100, 2), "%")
-    print("PC2:", round(explained_variance_ratio[1] * 100, 2), "%")
-
+for i in range(len(explained_variance_ratio)):
     print(
-        "Tổng phương sai giữ lại:",
-        round(cumulative_variance * 100, 2),
-        "%"
+        f"PC{i + 1}: "
+        f"{explained_variance_ratio[i] * 100:.2f}%"
     )
 
-    # Bước 6. Tạo DataFrame kết quả
-    pca_df = pd.DataFrame(
-        X_pca,
-        columns=["PC1", "PC2"]
+print("\n=== TRỊ RIÊNG (EXPLAINED VARIANCE) ===")
+print(np.round(pca_full.explained_variance_, 4))
+
+
+# ==========================================
+# BƯỚC 4. CHỌN 2 THÀNH PHẦN CHÍNH
+# ==========================================
+
+n_components = 2
+
+pca = PCA(n_components=n_components)
+
+X_pca = pca.fit_transform(X_scaled)
+
+print("\n=== KẾT QUẢ SAU PCA ===")
+print("Kích thước ban đầu:", X_scaled.shape)
+print("Kích thước sau PCA:", X_pca.shape)
+
+print(
+    "\nPhương sai giữ lại với 2 PC:",
+    f"{np.sum(pca.explained_variance_ratio_) * 100:.2f}%"
+)
+
+print("\nCác vector thành phần chính:")
+print(np.round(pca.components_, 4))
+
+
+# ==========================================
+# BƯỚC 5. VẼ BIỂU ĐỒ PHƯƠNG SAI GIẢI THÍCH
+# ==========================================
+
+plt.figure(figsize=(9, 5))
+
+plt.bar(
+    range(1, len(explained_variance_ratio) + 1),
+    explained_variance_ratio * 100
+)
+
+plt.xlabel("Thành phần chính")
+plt.ylabel("Tỷ lệ phương sai giải thích (%)")
+plt.title("Explained Variance Ratio - Sklearn PCA")
+plt.xticks(range(1, len(explained_variance_ratio) + 1))
+
+plt.tight_layout()
+plt.show()
+
+
+# ==========================================
+# BƯỚC 6. VẼ BIỂU ĐỒ PHÂN TÁN PCA 2D
+# ==========================================
+
+pca_df = pd.DataFrame(
+    X_pca,
+    columns=["PC1", "PC2"]
+)
+
+pca_df["target"] = y
+
+plt.figure(figsize=(9, 6))
+
+for label in sorted(np.unique(y)):
+    mask = y == label
+
+    plt.scatter(
+        X_pca[mask, 0],
+        X_pca[mask, 1],
+        label=f"Wine class {label}",
+        alpha=0.8
     )
 
-    pca_df.insert(0, "target", np.asarray(y))
+plt.xlabel("PC1")
+plt.ylabel("PC2")
+plt.title("PCA - Wine Dataset (Sklearn)")
+plt.legend()
+plt.grid(True, alpha=0.3)
+plt.tight_layout()
+plt.show()
 
-    # Tạo thư mục nếu chưa tồn tại
-    OUTPUT_PATH.parent.mkdir(parents=True, exist_ok=True)
 
-    # Lưu kết quả
-    pca_df.to_csv(OUTPUT_PATH, index=False)
+# ==========================================
+# BƯỚC 7. PHƯƠNG SAI GIẢI THÍCH TÍCH LŨY
+# ==========================================
 
-    print("\n5 mẫu đầu tiên sau PCA:")
-    print(pca_df.head())
+cumulative_variance = np.cumsum(explained_variance_ratio)
 
-    print("\nĐã lưu kết quả tại:")
-    print(OUTPUT_PATH)
+print("\n=== PHƯƠNG SAI GIẢI THÍCH TÍCH LŨY ===")
 
-    # Bước 7. Vẽ biểu đồ PCA
-    plt.figure(figsize=(9, 6))
-
-    for label in sorted(np.unique(y)):
-        mask = np.asarray(y) == label
-
-        plt.scatter(
-            X_pca[mask, 0],
-            X_pca[mask, 1],
-            label=f"Wine class {label}",
-            alpha=0.8
-        )
-
-    plt.xlabel("PC1")
-    plt.ylabel("PC2")
-    plt.title("PCA - Wine Dataset (Scikit-learn)")
-    plt.legend()
-    plt.grid(True, alpha=0.3)
-    plt.tight_layout()
-    plt.show()
-
-    # Bước 8. Vẽ tỷ lệ phương sai giải thích
-    plt.figure(figsize=(8, 5))
-
-    plt.bar(
-        ["PC1", "PC2"],
-        explained_variance_ratio * 100
+for i in range(len(cumulative_variance)):
+    print(
+        f"PC1 đến PC{i + 1}: "
+        f"{cumulative_variance[i] * 100:.2f}%"
     )
 
-    plt.ylabel("Tỷ lệ phương sai giải thích (%)")
-    plt.title("Explained Variance Ratio - Scikit-learn")
-    plt.tight_layout()
-    plt.show()
+print(
+    "\nPhương sai giữ lại với 2 PC:",
+    f"{cumulative_variance[1] * 100:.2f}%"
+)
+
+plt.figure(figsize=(9, 5))
+
+plt.plot(
+    range(1, len(cumulative_variance) + 1),
+    cumulative_variance * 100,
+    marker="o"
+)
+
+plt.axhline(
+    y=95,
+    linestyle="--",
+    label="Mốc 95%"
+)
+
+plt.xlabel("Số thành phần chính")
+plt.ylabel("Phương sai tích lũy (%)")
+plt.title("Cumulative Explained Variance - Sklearn PCA")
+plt.xticks(range(1, len(cumulative_variance) + 1))
+plt.grid(True, alpha=0.3)
+plt.legend()
+plt.tight_layout()
+plt.show()
+
+
+# ==========================================
+# BƯỚC 8. LƯU KẾT QUẢ PCA
+# ==========================================
+
+OUTPUT_PATH = (
+    PROJECT_ROOT / "data" / "processed" / "wine_pca_sklearn.csv"
+)
+
+OUTPUT_PATH.parent.mkdir(parents=True, exist_ok=True)
+pca_df.to_csv(OUTPUT_PATH, index=False)
+
+print("\nĐã lưu kết quả PCA tại:")
+print(OUTPUT_PATH)
